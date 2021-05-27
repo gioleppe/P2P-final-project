@@ -10,6 +10,11 @@ contract Mayor {
         uint soul;
         bool doblon;
     }
+
+    struct Candidate {
+        uint soul;
+        uint votes;
+    }
     
     // Data to manage the confirmation
     struct Conditions {
@@ -17,6 +22,7 @@ contract Mayor {
         uint32 envelopes_casted;
         uint32 envelopes_opened;
         bool outcome_declared;
+        bool cadidates_finished_depositing;
     }
     
     event NewMayor(address _candidate);
@@ -24,9 +30,11 @@ contract Mayor {
     event RefundedVoter(address _voter);
     event EnvelopeCast(address _voter);
     event EnvelopeOpen(address _voter, uint _soul, bool _doblon);
+    event VoteForMe(address _candidate, uint _soul);
     
-    // Someone can vote as long as the quorum is not reached
+    // Someone can vote as long as the quorum is not reached and the candidates finished depositing their soul
     modifier canVote() {
+        require(voting_condition.outcome_declared, "You cannot vote until all candidates have finalised their participation!");
         require(voting_condition.envelopes_casted < voting_condition.quorum, "Cannot vote now, voting quorum has been reached");
         _;   
     }
@@ -47,9 +55,13 @@ contract Mayor {
     // State attributes
     
     // Initialization variables
-    address payable public candidate;
+    address[] public candidates;
     address payable public escrow;
     
+    // Candidates mapping for soul depositing and counting votes
+    mapping(address => bool) is_candidate;
+    mapping(address => Candidate) candidate_standings;
+
     // Voting phase variables
     mapping(address => bytes32) envelopes;
 
@@ -63,15 +75,33 @@ contract Mayor {
     address[] voters;
 
     /// @notice The constructor only initializes internal variables
-    /// @param _candidate (address) The address of the mayor candidate
+    /// @param _candidates (address) The address of the mayor candidate
     /// @param _escrow (address) The address of the escrow account
     /// @param _quorum (address) The number of voters required to finalize the confirmation
-    constructor(address payable _candidate, address payable _escrow, uint32 _quorum) public {
-        candidate = _candidate;
+    constructor(address[] memory _candidates, address payable _escrow, uint32 _quorum) public {
+        // add to mapping to check if they're really candidates
+        for(uint i = 0; i < _candidates.length; i++) {
+            candidates.push(_candidates[i]);
+            is_candidate[candidates[i]] = true;
+        }
+
         escrow = _escrow;
-        voting_condition = Conditions({quorum: _quorum, envelopes_casted: 0, envelopes_opened: 0, outcome_declared: false});
+        voting_condition = Conditions({quorum: _quorum, envelopes_casted: 0, envelopes_opened: 0, outcome_declared: false, cadidates_finished_depositing: false});
     }
 
+    /// @notice Let candidates store their soul for cookies ;)
+    /// soul can only deposited once, the sender must be a candidate, of course.
+    function deposit_soul () public payable {
+        require(is_candidate[msg.sender], "You're not a candidate in this election!");
+        require(candidate_standings[msg.sender].soul == 0, "You've already deposited some soul!");
+
+        // add the candidate to the standings
+        candidate_standings[msg.sender] = Candidate({soul: msg.value, votes: 0});
+        
+        // just to annouce we've got free cookies :)
+        emit VoteForMe(msg.sender, msg.value);
+
+    }
 
     /// @notice Store a received voting envelope
     /// @param _envelope The envelope represented as the keccak256 hash of (sigil, doblon, soul) 
@@ -129,8 +159,8 @@ contract Mayor {
 
         // pay the new mayor, emit the event
         if (confirmed) {
-            candidate.transfer(yaySoul);
-            emit NewMayor(candidate);
+            // candidate.transfer(yaySoul);
+            // emit NewMayor(candidate);
         }
 
         // sayonara! pay the escrow
