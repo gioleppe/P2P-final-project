@@ -7,11 +7,27 @@ instance = null;
 contract("Mayor, generic tests", async accounts => {
     it("Should test the constructor", async () => {
         // account 0 creates a new election with three candidates, a quorum of 4
-        return instance = await Mayor.new([accounts[0], accounts[1], accounts[2]], accounts[3], 4, {from: accounts[0]});
+        instance = await Mayor.new([accounts[0], accounts[1], accounts[2]], accounts[3], 4, {from: accounts[0]});
+        return (instance == true);
         
     });
 
-    it("Should correctly compute envelopes", () => {
+    it("Should test soul depositing from the candidates", async () => {
+        
+        let counter = 0;
+        for (i = 0; i < 3; i++){
+            // if we successfully deposit some soul
+           deposit = await instance.deposit_soul({from: accounts[i], value: 100});
+           if (deposit)
+            counter += 1;
+        }
+
+        return (counter == 3);
+
+    });
+
+    it("Should test compute envelope", () => {
+
         // precompute the envelope
         let _envelope = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint", "bool", "uint"], [1, true, 1]));
 
