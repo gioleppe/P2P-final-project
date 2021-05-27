@@ -25,7 +25,7 @@ contract Mayor {
     }
 
     event NewMayor(address _candidate);
-    event Tie(address[] _candidates);
+    event Tie();
     event RefundedVoter(address _voter);
     event EnvelopeCast(address _voter);
     event EnvelopeOpen(address _voter, uint256 _soul, address symbol);
@@ -189,22 +189,74 @@ contract Mayor {
         emit EnvelopeOpen(msg.sender, msg.value, _symbol);
     }
 
+    /// @notice checks if there's a winner and returns its address
+    function check_winner() private returns (address, bool) {
+        // keep max votes and max soul
+        uint256 max_soul = 0;
+        uint256 max_votes = 0;
+
+        // we just need to keep two addresses to have a tie
+        address[] memory possible_winners;
+
+        for (uint256 i = 0; i < candidates.length; i++) {
+            uint256 candidate_soul = candidate_standings[candidates[i]].soul;
+            uint256 candidate_votes = candidate_standings[candidates[i]].votes;
+
+            // if greater than the maximum soul, then we have a new candidate winner
+            if (candidate_soul > max_soul) {
+                max_soul = candidate_soul;
+                max_votes = candidate_votes;
+                delete possible_winners;
+                possible_winners[0] = candidates[i];
+            }
+            // otherwise if the soul is equal, check the votes
+            else if (candidate_soul == max_soul) {
+                // better candidate, replace the current one
+                if (candidate_votes > max_votes) {
+                    max_votes = candidate_votes;
+                    delete possible_winners;
+                    possible_winners[0] = candidates[i];
+                }
+                // case in which both soul and votes are equal, we have a possible tie
+                // two positions are enough in order to declare a tie
+                else if (candidate_votes == max_votes)
+                    possible_winners[1] = (candidates[i]);
+                    // otherwise the candidate was loosing, let's go on
+                else continue;
+            }
+        }
+
+        // if lenght > 1 then it's a tie, return null
+        if (possible_winners.length > 1) return (address(0), true);
+
+        // otherwise we have a winner!
+        return (possible_winners[0], false);
+    }
+
     /// @notice Either confirm or kick out the candidate. Refund the electors who voted for the losing outcome
     function mayor_or_sayonara() public canCheckOutcome {
         // in order not to exploit this multiple times
         voting_condition.outcome_declared = true;
 
-        // refund losing voters
-        for (uint256 i = 0; i < voters.length; i++) {
-            // if the voter "won", no refund
-            // right line -> if (souls[voters[i]].doblon == confirmed) continue;
-            if (true) continue;
-            else {
-                address payable to_refund = payable(voters[i]);
-                to_refund.transfer(souls[to_refund].soul);
-                emit RefundedVoter(to_refund);
-            }
-        }
+        // return a pair with winner if there's one, and a tie check bool
+        (address winner, bool tie) = check_winner();
+
+        // if there's no winner emit Tie
+        if (tie) emit Tie();
+        // if there's a winner emit NewMayor
+        else emit NewMayor(winner);
+
+        // // refund losing voters
+        // for (uint256 i = 0; i < voters.length; i++) {
+        //     // if the voter "won", no refund
+        //     // right line -> if (souls[voters[i]].doblon == confirmed) continue;
+        //     if (true) continue;
+        //     else {
+        //         address payable to_refund = payable(voters[i]);
+        //         to_refund.transfer(souls[to_refund].soul);
+        //         emit RefundedVoter(to_refund);
+        //     }
+        // }
     }
 
     /// @notice Compute a voting envelope
