@@ -25,7 +25,7 @@ contract Mayor {
     }
 
     event NewMayor(address _candidate);
-    event Sayonara(address _escrow);
+    event Tie(address[] _candidates);
     event RefundedVoter(address _voter);
     event EnvelopeCast(address _voter);
     event EnvelopeOpen(address _voter, uint256 _soul, address symbol);
@@ -80,9 +80,6 @@ contract Mayor {
     mapping(address => bytes32) envelopes;
 
     Conditions voting_condition;
-
-    uint256 public naySoul;
-    uint256 public yaySoul;
 
     // Refund phase variables
     mapping(address => Refund) souls;
@@ -197,25 +194,11 @@ contract Mayor {
         // in order not to exploit this multiple times
         voting_condition.outcome_declared = true;
 
-        // check it the mayor has been confirmed
-        bool confirmed = (yaySoul > naySoul);
-
-        // pay the new mayor, emit the event
-        if (confirmed) {
-            // candidate.transfer(yaySoul);
-            // emit NewMayor(candidate);
-        }
-        // sayonara! pay the escrow
-        else {
-            escrow.transfer(naySoul);
-            emit Sayonara(escrow);
-        }
-
         // refund losing voters
         for (uint256 i = 0; i < voters.length; i++) {
             // if the voter "won", no refund
             // right line -> if (souls[voters[i]].doblon == confirmed) continue;
-            if (confirmed) continue;
+            if (true) continue;
             else {
                 address payable to_refund = payable(voters[i]);
                 to_refund.transfer(souls[to_refund].soul);
