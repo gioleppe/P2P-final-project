@@ -39,6 +39,17 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
+    it("Should test failure when the deposit doesn't come from a candidate", async () => {
+        // another instance just for this test
+        _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 3, {from: accounts[0]})
+
+        // this will fail
+        await truffleAssert.fails(
+            _instance.deposit_soul({from: accounts[9], value: 100}),
+        );
+
+    });
+
     it("Should test compute envelope", () => {
 
         // precompute the envelope
