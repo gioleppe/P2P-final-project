@@ -1,5 +1,6 @@
 const Mayor = artifacts.require("Mayor");
 const ethers = require("ethers");
+const truffleAssert = require('truffle-assertions');
 
 // to store the contract's instance
 instance = null;
@@ -32,7 +33,9 @@ contract("Mayor, generic tests", async accounts => {
         // this will go smoothly
         deposit = await _instance.deposit_soul({from: accounts[0], value: 100});
         // this will fail
-        expect(_instance.deposit_soul({from: accounts[0], value: 100})).to.throw(Error);
+        await truffleAssert.fails(
+            _instance.deposit_soul({from: accounts[0], value: 100}),
+        );
 
     });
 
