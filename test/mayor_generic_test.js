@@ -13,6 +13,12 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
+    it("Should fail if the contract is deployed with a single candidate", async () => {
+        await truffleAssert.fails(
+            Mayor.new([accounts[0]], accounts[3], 4, { from: accounts[0] }),
+        );
+    });
+
     it("Should let candidates deposit soul", async () => {
 
         let counter = 0;
