@@ -6,12 +6,8 @@ instance = null;
 
 contract("Mayor, generic tests", async accounts => {
     it("Should test the constructor", async () => {
-        instance = await Mayor.new(accounts[0], accounts[1], 1, {from: accounts[0]})
-
-        return instance.candidate()
-        .then(addr => {
-            assert.equal(addr, accounts[0])
-        })
+        // account 0 creates a new election with three candidates, a quorum of 4
+        return instance = await Mayor.new([accounts[0], accounts[1], accounts[2]], accounts[3], 4, {from: accounts[0]});
         
     });
 
