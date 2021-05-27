@@ -7,7 +7,7 @@ contract Mayor {
     // Store refund data
     struct Refund {
         uint256 soul;
-        bool doblon;
+        address symbol;
     }
 
     struct Candidate {
@@ -28,7 +28,7 @@ contract Mayor {
     event Sayonara(address _escrow);
     event RefundedVoter(address _voter);
     event EnvelopeCast(address _voter);
-    event EnvelopeOpen(address _voter, uint256 _soul, bool _doblon);
+    event EnvelopeOpen(address _voter, uint256 _soul, address symbol);
     event VoteForMe(address _candidate, uint256 _soul);
 
     // Someone can vote as long as the quorum is not reached and the candidates finished depositing their soul
@@ -89,7 +89,7 @@ contract Mayor {
     address[] voters;
 
     /// @notice The constructor only initializes internal variables
-    /// @param _candidates (address) The address of the mayor candidate
+    /// @param _candidates (address array) The addresses/symbols of the mayor candidates
     /// @param _escrow (address) The address of the escrow account
     /// @param _quorum (address) The number of voters required to finalize the confirmation
     constructor(
@@ -152,14 +152,18 @@ contract Mayor {
 
     /// @notice Open an envelope and store the vote information
     /// @param _sigil (uint) The secret sigil of a voter
-    /// @param _doblon (bool) The voting preference
+    /// @param _symbol (bool) The voting preference
     /// @dev The soul is sent as crypto
     /// @dev Need to recompute the hash to validate the envelope previously casted
-    function open_envelope(uint256 _sigil, bool _doblon)
+    function open_envelope(uint256 _sigil, address _symbol)
         public
         payable
         canOpen
     {
+        require(
+            is_candidate[_symbol],
+            "The guy you're voting for is not a candidate!"
+        );
         require(
             envelopes[msg.sender] != 0x0,
             "The sender has not casted any votes"
@@ -167,7 +171,7 @@ contract Mayor {
 
         bytes32 _casted_envelope = envelopes[msg.sender];
         bytes32 _sent_envelope =
-            keccak256(abi.encode(_sigil, _doblon, msg.value));
+            keccak256(abi.encode(_sigil, _symbol, msg.value));
 
         require(
             _casted_envelope == _sent_envelope,
@@ -179,16 +183,17 @@ contract Mayor {
         );
 
         // let's prepare for a possible refund
-        souls[msg.sender] = Refund(msg.value, _doblon);
+        souls[msg.sender] = Refund(msg.value, _symbol);
         voters.push(msg.sender);
 
-        if (_doblon == true) yaySoul += msg.value;
-        else naySoul += msg.value;
+        // add a vote and some soul to the candidate's standing
+        candidate_standings[_symbol].votes++;
+        candidate_standings[_symbol].soul += msg.value;
 
-        // we increase the envelopes opened (we should also check for already opened envelope)
+        // we increase the opened envelopes number
         voting_condition.envelopes_opened++;
 
-        emit EnvelopeOpen(msg.sender, msg.value, _doblon);
+        emit EnvelopeOpen(msg.sender, msg.value, _symbol);
     }
 
     /// @notice Either confirm or kick out the candidate. Refund the electors who voted for the losing outcome
@@ -213,7 +218,8 @@ contract Mayor {
         // refund losing voters
         for (uint256 i = 0; i < voters.length; i++) {
             // if the voter "won", no refund
-            if (souls[voters[i]].doblon == confirmed) continue;
+            // right line -> if (souls[voters[i]].doblon == confirmed) continue;
+            if (confirmed) continue;
             else {
                 address payable to_refund = payable(voters[i]);
                 to_refund.transfer(souls[to_refund].soul);

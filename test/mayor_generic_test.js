@@ -13,7 +13,7 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
-    it("Should test soul depositing from the candidates", async () => {
+    it("Should let candidates deposit soul", async () => {
 
         let counter = 0;
         for (i = 0; i < 3; i++) {
@@ -27,7 +27,7 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
-    it("Should test failure when double depositing", async () => {
+    it("Should fail when double depositing", async () => {
         // another instance just for this test
         _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 3, { from: accounts[0] })
         // this will go smoothly
@@ -39,7 +39,7 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
-    it("Should test failure when the deposit doesn't come from a candidate", async () => {
+    it("Should fail when the deposit doesn't come from a candidate", async () => {
         // another instance just for this test
         _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 3, { from: accounts[0] })
 
@@ -50,7 +50,7 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
-    it("Should test compute envelope", () => {
+    it("Should compute envelope", () => {
 
         // precompute the envelope
         let _envelope = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint", "address", "uint"], [1, accounts[0], 1]));
@@ -60,7 +60,7 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
-    it("Should test cast_envelope", async () => {
+    it("Should cast envelope", async () => {
         // another instance just for this test
         _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 3, { from: accounts[0] });
 
@@ -68,12 +68,11 @@ contract("Mayor, generic tests", async accounts => {
         _instance.deposit_soul({ from: accounts[1], value: 100 });
 
         let envelope = await _instance.compute_envelope(1, accounts[0], 1, { from: accounts[9] });
-        console.log(envelope);
         return _instance.cast_envelope(envelope, { from: accounts[9] });
 
     });
 
-    it("Should test failure when casting a vote without waiting for all deposits", async () => {
+    it("Should fail when casting a vote without waiting for all deposits", async () => {
         // another instance just for this test
         _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 3, { from: accounts[0] })
 
@@ -85,17 +84,20 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
-    it("Should correctly cast envelopes", async () => {
-        let envelope = await instance.compute_envelope(1, true, 1, { from: accounts[2] });
+    it("Should correctly open an envelope", async () => {
+        // another instance just for this test
+        _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 3, { from: accounts[0] });
 
-        // console.log(envelope);
+        _instance.deposit_soul({ from: accounts[0], value: 100 });
+        _instance.deposit_soul({ from: accounts[1], value: 100 });
 
-        return instance.cast_envelope(envelope, { from: accounts[2] });
+        for (i = 3; i < 6; i++) {
+            let envelope = await _instance.compute_envelope(1, accounts[0], 1, { from: accounts[i] });
+            _instance.cast_envelope(envelope, { from: accounts[i] });
+        }
 
-    });
+        return (_instance.open_envelope(1, accounts[0], { from: accounts[3], value: 1 }));
 
-    it("Should correctly open envelopes", async () => {
-        return instance.open_envelope(1, true, { from: accounts[2], value: 1 })
     });
 
     it("Should correctly declare the winner", async () => {
