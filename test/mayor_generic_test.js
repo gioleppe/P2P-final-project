@@ -53,11 +53,11 @@ contract("Mayor, generic tests", async accounts => {
     it("Should test compute envelope", () => {
 
         // precompute the envelope
-        let _envelope = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint", "bool", "uint"], [1, true, 1]));
-
+        let _envelope = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint", "address", "uint"], [1, accounts[0], 1]));
         // check if returned envelope is the same as the one we computed before
-        return instance.compute_envelope(1, true, 1, {from: accounts[2]})
+        return instance.compute_envelope(1, accounts[0], 1, {from: accounts[2]})
         .then(envelope => assert.equal(envelope, _envelope));
+        
     });
 
     it("Should correctly cast envelopes", async () => {

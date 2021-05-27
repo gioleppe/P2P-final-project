@@ -186,10 +186,10 @@ contract Mayor {
  
     /// @notice Compute a voting envelope
     /// @param _sigil (uint) The secret sigil of a voter
-    /// @param _doblon (bool) The voting preference
+    /// @param _symbol (addres) The symbol of a candidate, represented by his address
     /// @param _soul (uint) The soul associated to the vote
-    function compute_envelope(uint _sigil, bool _doblon, uint _soul) public pure returns(bytes32) {
-        return keccak256(abi.encode(_sigil, _doblon, _soul));
+    function compute_envelope(uint _sigil, address _symbol, uint _soul) public pure returns(bytes32) {
+        return keccak256(abi.encode(_sigil, _symbol, _soul));
     }
     
 }
