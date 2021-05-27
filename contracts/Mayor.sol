@@ -161,10 +161,6 @@ contract Mayor {
         canOpen
     {
         require(
-            is_candidate[_symbol],
-            "The guy you're voting for is not a candidate!"
-        );
-        require(
             envelopes[msg.sender] != 0x0,
             "The sender has not casted any votes"
         );
