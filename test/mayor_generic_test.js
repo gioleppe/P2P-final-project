@@ -128,8 +128,7 @@ contract("Mayor, generic tests", async accounts => {
 
         // let's wait for the transaction, then test the event
         let tx = await _instance.mayor_or_sayonara({ from: accounts[0] });
-        console.log(tx);
-        // assert winner == accounts[0]
+        // assert winner === accounts[0]
         truffleAssert.eventEmitted(tx, 'NewMayor', (ev) => {
             return ev._candidate === accounts[0];
         });
@@ -158,6 +157,32 @@ contract("Mayor, generic tests", async accounts => {
         truffleAssert.eventEmitted(tx, 'Tie', (ev) => {
             // not great, but it works. Thank js for crappy equality!
             return JSON.stringify([accounts[0], accounts[1]]) == JSON.stringify(ev._tiers);
+        });
+
+    });
+
+    it("Should correctly transfer all the money to the escrow in case of a tie", async () => {
+
+        _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 2, { from: accounts[0] });
+
+        _instance.deposit_soul({ from: accounts[0], value: 100 });
+        _instance.deposit_soul({ from: accounts[1], value: 100 });
+
+        for (i = 0; i < 2; i++) {
+            let envelope = await _instance.compute_envelope(1, accounts[i], 1, { from: accounts[i + 2] });
+            _instance.cast_envelope(envelope, { from: accounts[i + 2] });
+        }
+
+        for (i = 0; i < 2; i++) {
+            await _instance.open_envelope(1, accounts[i], { from: accounts[i + 2], value: 1 });
+        }
+
+        // let's wait for the transaction, then test the event
+        let tx = await _instance.mayor_or_sayonara({ from: accounts[0] });
+
+        truffleAssert.eventEmitted(tx, 'EscrowTransfer', (ev) => {
+            // 202 -> two votes and two deposits
+            return ev._transfer == 202;
         });
 
     });

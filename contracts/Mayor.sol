@@ -28,6 +28,7 @@ contract Mayor {
     event NewMayor(address _candidate);
     event Tie(address[] _tiers);
     event RefundedVoter(address _voter);
+    event EscrowTransfer(uint256 _transfer);
     event EnvelopeCast(address _voter);
     event EnvelopeOpen(address _voter, uint256 _soul, address _symbol);
     event VoteForMe(address _candidate, uint256 _soul);
@@ -249,6 +250,24 @@ contract Mayor {
         emit Tie(tiers);
     }
 
+    /// @notice Sends all the money to the escrow account in case of a tie
+    function tie_transfer() private {
+        uint256 total_escrow = 0;
+        for (uint256 i = 0; i < candidates.length; i++) {
+            uint256 voters_soul = candidate_standings[candidates[i]].vote_soul;
+            uint256 deposited_soul =
+                candidate_standings[candidates[i]].deposited_soul;
+
+            total_escrow += voters_soul;
+            total_escrow += deposited_soul;
+
+            escrow.transfer(voters_soul);
+            escrow.transfer(deposited_soul);
+        }
+
+        emit EscrowTransfer(total_escrow);
+    }
+
     /// @notice Either confirm or kick out the candidate. Refund the electors who voted for the losing outcome
     function mayor_or_sayonara() public canCheckOutcome {
         // // in order not to exploit this multiple times
@@ -259,6 +278,12 @@ contract Mayor {
 
         // if there's no tie, emit winner
         if (!tie) emit NewMayor(winner);
+
+        // if tie, all money to the escrow (both voters and candidates)
+        if (tie) tie_transfer();
+
+        // else refund losing voters && winning voters get cookies
+        // && winning candidate gets losing candidate money
 
         // // // refund losing voters
         // // for (uint256 i = 0; i < voters.length; i++) {
