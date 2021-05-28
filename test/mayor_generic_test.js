@@ -164,6 +164,34 @@ contract("Mayor, generic tests", async accounts => {
 
     });
 
+    it("Should reward winning voters", async () => {
+
+        _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 3, { from: accounts[0] });
+
+        _instance.deposit_soul({ from: accounts[0], value: 100 });
+        _instance.deposit_soul({ from: accounts[1], value: 100 });
+
+        for (i = 0; i < 3; i++) {
+            let envelope = await _instance.compute_envelope(1, accounts[0], 1, { from: accounts[i + 3] });
+            _instance.cast_envelope(envelope, { from: accounts[i + 3] });
+        }
+
+        for (i = 0; i < 3; i++) {
+            await _instance.open_envelope(1, accounts[0], { from: accounts[i + 3], value: 1 });
+        }
+
+        // let's wait for the transaction, then test the event
+        let tx = await _instance.mayor_or_sayonara({ from: accounts[0] });
+
+        // accounts 3 to 5 should be rewarded with 33 weis each
+        for (i = 0; i < 3; i++) {
+            truffleAssert.eventEmitted(tx, 'RewardVoter', (ev) => {
+                return (ev._voter == accounts[i + 3] && ev._soul == 33);
+            });
+        }
+
+    });
+
     it("Should emit Tie event", async () => {
 
         _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 2, { from: accounts[0] });
