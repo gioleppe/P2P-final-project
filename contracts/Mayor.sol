@@ -11,7 +11,8 @@ contract Mayor {
     }
 
     struct Candidate {
-        uint256 soul;
+        uint256 deposited_soul;
+        uint256 vote_soul;
         uint256 votes;
     }
 
@@ -28,7 +29,7 @@ contract Mayor {
     event Tie();
     event RefundedVoter(address _voter);
     event EnvelopeCast(address _voter);
-    event EnvelopeOpen(address _voter, uint256 _soul, address symbol);
+    event EnvelopeOpen(address _voter, uint256 _soul, address _symbol);
     event VoteForMe(address _candidate, uint256 _soul);
 
     // Someone can vote as long as the quorum is not reached and the candidates finished depositing their soul
@@ -56,7 +57,8 @@ contract Mayor {
     // The outcome of the confirmation can be computed as soon as all the casted envelopes have been opened
     modifier canCheckOutcome() {
         require(
-            voting_condition.envelopes_opened == voting_condition.quorum,
+            voting_condition.envelopes_opened ==
+                voting_condition.envelopes_casted,
             "Cannot check the winner, need to open all the sent envelopes"
         );
         require(
@@ -120,13 +122,14 @@ contract Mayor {
             "You're not a candidate in this election!"
         );
         require(
-            candidate_standings[msg.sender].soul == 0,
+            candidate_standings[msg.sender].deposited_soul == 0,
             "You've already deposited some soul!"
         );
 
         // add the candidate to the standings
         candidate_standings[msg.sender] = Candidate({
-            soul: msg.value,
+            deposited_soul: msg.value,
+            vote_soul: 0,
             votes: 0
         });
 
@@ -181,7 +184,7 @@ contract Mayor {
 
         // add a vote and some soul to the candidate's standing
         candidate_standings[_symbol].votes++;
-        candidate_standings[_symbol].soul += msg.value;
+        candidate_standings[_symbol].vote_soul += msg.value;
 
         // we increase the opened envelopes number
         voting_condition.envelopes_opened++;
@@ -191,72 +194,63 @@ contract Mayor {
 
     /// @notice checks if there's a winner and returns its address
     function check_winner() private returns (address, bool) {
-        // keep max votes and max soul
+        uint256 tiers = 0;
         uint256 max_soul = 0;
         uint256 max_votes = 0;
-
-        // we just need to keep two addresses to have a tie
-        address[] memory possible_winners;
+        address possible_winner;
 
         for (uint256 i = 0; i < candidates.length; i++) {
-            uint256 candidate_soul = candidate_standings[candidates[i]].soul;
-            uint256 candidate_votes = candidate_standings[candidates[i]].votes;
+            // let's fetch candidate's standings
+            address candidate = candidates[i];
+            uint256 candidate_soul = candidate_standings[candidate].vote_soul;
+            uint256 candidate_votes = candidate_standings[candidate].votes;
 
-            // if greater than the maximum soul, then we have a new candidate winner
             if (candidate_soul > max_soul) {
+                possible_winner = address(candidate);
                 max_soul = candidate_soul;
                 max_votes = candidate_votes;
-                delete possible_winners;
-                possible_winners[0] = candidates[i];
+                tiers = 0;
             }
-            // otherwise if the soul is equal, check the votes
+            // otherwise there could be a tie at (max_soul, max_votes)
             else if (candidate_soul == max_soul) {
-                // better candidate, replace the current one
-                if (candidate_votes > max_votes) {
-                    max_votes = candidate_votes;
-                    delete possible_winners;
-                    possible_winners[0] = candidates[i];
-                }
-                // case in which both soul and votes are equal, we have a possible tie
-                // two positions are enough in order to declare a tie
-                else if (candidate_votes == max_votes)
-                    possible_winners[1] = (candidates[i]);
-                    // otherwise the candidate was loosing, let's go on
-                else continue;
+                tiers += 1;
             }
         }
 
-        // if lenght > 1 then it's a tie, return null
-        if (possible_winners.length > 1) return (address(0), true);
+        if (tiers == 0) {
+            return (possible_winner, false);
+        } else {
+            check_tie(max_votes);
+            return (address(0), true);
+        }
+    }
 
-        // otherwise we have a winner!
-        return (possible_winners[0], false);
+    function check_tie(uint256 max_votes) private {
+        emit Tie();
     }
 
     /// @notice Either confirm or kick out the candidate. Refund the electors who voted for the losing outcome
     function mayor_or_sayonara() public canCheckOutcome {
-        // in order not to exploit this multiple times
-        voting_condition.outcome_declared = true;
+        // // in order not to exploit this multiple times
+        // voting_condition.outcome_declared = true;
 
-        // return a pair with winner if there's one, and a tie check bool
+        // // return a pair with winner if there's one, and a tie check bool
         (address winner, bool tie) = check_winner();
 
-        // if there's no winner emit Tie
-        if (tie) emit Tie();
-        // if there's a winner emit NewMayor
-        else emit NewMayor(winner);
+        // if there's no tie, emit winner
+        if (!tie) emit NewMayor(winner);
 
-        // // refund losing voters
-        // for (uint256 i = 0; i < voters.length; i++) {
-        //     // if the voter "won", no refund
-        //     // right line -> if (souls[voters[i]].doblon == confirmed) continue;
-        //     if (true) continue;
-        //     else {
-        //         address payable to_refund = payable(voters[i]);
-        //         to_refund.transfer(souls[to_refund].soul);
-        //         emit RefundedVoter(to_refund);
-        //     }
-        // }
+        // // // refund losing voters
+        // // for (uint256 i = 0; i < voters.length; i++) {
+        // //     // if the voter "won", no refund
+        // //     // right line -> if (souls[voters[i]].doblon == confirmed) continue;
+        // //     if (true) continue;
+        // //     else {
+        // //         address payable to_refund = payable(voters[i]);
+        // //         to_refund.transfer(souls[to_refund].soul);
+        // //         emit RefundedVoter(to_refund);
+        // //     }
+        // // }
     }
 
     /// @notice Compute a voting envelope

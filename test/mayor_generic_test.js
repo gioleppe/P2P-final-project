@@ -102,12 +102,38 @@ contract("Mayor, generic tests", async accounts => {
             _instance.cast_envelope(envelope, { from: accounts[i] });
         }
 
-        return (_instance.open_envelope(1, accounts[0], { from: accounts[3], value: 1 }));
+        let tx = await _instance.open_envelope(1, accounts[0], { from: accounts[3], value: 1 });
+        truffleAssert.eventEmitted(tx, 'EnvelopeOpen', (ev) => {
+            return (ev._voter === accounts[3] && ev._symbol == accounts[0]);
+        });
+
 
     });
 
-    it("Should correctly declare the winner", async () => {
-        return instance.mayor_or_sayonara({ from: accounts[0] });
+    it("Should emit new mayor event", async () => {
+
+        _instance = await Mayor.new([accounts[0], accounts[1]], accounts[2], 3, { from: accounts[0] });
+
+        _instance.deposit_soul({ from: accounts[0], value: 100 });
+        _instance.deposit_soul({ from: accounts[1], value: 100 });
+
+        for (i = 3; i < 6; i++) {
+            let envelope = await _instance.compute_envelope(1, accounts[0], 1, { from: accounts[i] });
+            _instance.cast_envelope(envelope, { from: accounts[i] });
+        }
+
+        for (i = 3; i < 6; i++) {
+            await _instance.open_envelope(1, accounts[0], { from: accounts[i], value: 1 });
+        }
+
+        // let's wait for the transaction, then test the event
+        let tx = await _instance.mayor_or_sayonara({ from: accounts[0] });
+        console.log(tx);
+        // assert winner == accounts[0]
+        truffleAssert.eventEmitted(tx, 'NewMayor', (ev) => {
+            return ev._candidate === accounts[0];
+        });
+
     });
 
 })
