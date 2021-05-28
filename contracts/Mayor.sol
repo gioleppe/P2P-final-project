@@ -27,7 +27,7 @@ contract Mayor {
 
     event NewMayor(address _candidate);
     event Tie(address[] _tiers);
-    event RefundedVoter(address _voter);
+    event RefundedVoter(address _voter, uint256 _soul);
     event EscrowTransfer(uint256 _transfer);
     event EnvelopeCast(address _voter);
     event EnvelopeOpen(address _voter, uint256 _soul, address _symbol);
@@ -268,34 +268,36 @@ contract Mayor {
         emit EscrowTransfer(total_escrow);
     }
 
+    function refund_losers(address winner) private {
+        for (uint256 i = 0; i < voters.length; i++) {
+            // if the guy voted for the winning candidate, go on!
+            if (souls[voters[i]].symbol == winner) continue;
+            else {
+                address payable to_refund = payable(voters[i]);
+                to_refund.transfer(souls[to_refund].soul);
+                emit RefundedVoter(to_refund, souls[to_refund].soul);
+            }
+        }
+    }
+
     /// @notice Either confirm or kick out the candidate. Refund the electors who voted for the losing outcome
     function mayor_or_sayonara() public canCheckOutcome {
-        // // in order not to exploit this multiple times
-        // voting_condition.outcome_declared = true;
+        // in order not to exploit this multiple times
+        voting_condition.outcome_declared = true;
 
         // // return a pair with winner if there's one, and a tie check bool
         (address winner, bool tie) = check_winner();
 
         // if there's no tie, emit winner
-        if (!tie) emit NewMayor(winner);
+        // erefund losing voters && winning voters get cookies
+        if (!tie) {
+            emit NewMayor(winner);
+            refund_losers(winner);
+            // send_cookies();
+        }
 
-        // if tie, all money to the escrow (both voters and candidates)
+        // else, all money to the escrow (both voters and candidates)
         if (tie) tie_transfer();
-
-        // else refund losing voters && winning voters get cookies
-        // && winning candidate gets losing candidate money
-
-        // // // refund losing voters
-        // // for (uint256 i = 0; i < voters.length; i++) {
-        // //     // if the voter "won", no refund
-        // //     // right line -> if (souls[voters[i]].doblon == confirmed) continue;
-        // //     if (true) continue;
-        // //     else {
-        // //         address payable to_refund = payable(voters[i]);
-        // //         to_refund.transfer(souls[to_refund].soul);
-        // //         emit RefundedVoter(to_refund);
-        // //     }
-        // // }
     }
 
     /// @notice Compute a voting envelope
