@@ -154,8 +154,7 @@ contract("Mayor, generic tests", async accounts => {
 
         // let's wait for the transaction, then test the event
         let tx = await _instance.mayor_or_sayonara({ from: accounts[0] });
-        console.log(tx);
-        // assert winner == accounts[0]
+
         truffleAssert.eventEmitted(tx, 'Tie', (ev) => {
             // not great, but it works. Thank js for crappy equality!
             return JSON.stringify([accounts[0], accounts[1]]) == JSON.stringify(ev._tiers);

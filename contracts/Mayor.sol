@@ -26,7 +26,7 @@ contract Mayor {
     }
 
     event NewMayor(address _candidate);
-    event Tie();
+    event Tie(address[] _tiers);
     event RefundedVoter(address _voter);
     event EnvelopeCast(address _voter);
     event EnvelopeOpen(address _voter, uint256 _soul, address _symbol);
@@ -220,13 +220,33 @@ contract Mayor {
         if (tiers == 0) {
             return (possible_winner, false);
         } else {
-            check_tie(max_votes);
+            // +1 since there's the first tier as well
+            check_tie(tiers + 1, max_votes, max_soul);
             return (address(0), true);
         }
     }
 
-    function check_tie(uint256 max_votes) private {
-        emit Tie();
+    /// @notice emits an event with the address of the tiers
+    function check_tie(
+        uint256 num_tiers,
+        uint256 max_votes,
+        uint256 max_soul
+    ) private {
+        address[] memory tiers = new address[](num_tiers);
+        uint256 tiers_index = 0;
+
+        for (uint256 i = 0; i < candidates.length; i++) {
+            address candidate = candidates[i];
+            uint256 candidate_soul = candidate_standings[candidate].vote_soul;
+            uint256 candidate_votes = candidate_standings[candidate].votes;
+
+            // if the guy is a tier, add him to the array
+            if (candidate_soul == max_soul && candidate_votes == max_votes) {
+                tiers[tiers_index] = candidate;
+                tiers_index++;
+            }
+        }
+        emit Tie(tiers);
     }
 
     /// @notice Either confirm or kick out the candidate. Refund the electors who voted for the losing outcome
