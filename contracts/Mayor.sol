@@ -28,6 +28,7 @@ contract Mayor {
     event NewMayor(address _candidate);
     event Tie(address[] _tiers);
     event RefundedVoter(address _voter, uint256 _soul);
+    event RewardVoter(address _voter, uint256 _soul);
     event EscrowTransfer(uint256 _transfer);
     event EnvelopeCast(address _voter);
     event EnvelopeOpen(address _voter, uint256 _soul, address _symbol);
@@ -84,8 +85,9 @@ contract Mayor {
 
     Conditions voting_condition;
 
-    // Refund phase variables
+    // Refund and Reward phase variables
     mapping(address => Refund) souls;
+    address[] to_reward;
     address[] voters;
 
     /// @notice The constructor only initializes internal variables
@@ -268,6 +270,7 @@ contract Mayor {
         emit EscrowTransfer(total_escrow);
     }
 
+    /// @notice refund the losing voters
     function refund_losers(address winner) private {
         for (uint256 i = 0; i < voters.length; i++) {
             // if the guy voted for the winning candidate, go on!
@@ -278,6 +281,28 @@ contract Mayor {
                 emit RefundedVoter(to_refund, souls[to_refund].soul);
             }
         }
+    }
+
+    /// @notice Send a reward to the voters who voted for the winning candidate
+    function send_cookies(address winner) private {
+        for (uint256 i = 0; i < voters.length; i++) {
+            if (souls[voters[i]].symbol == winner) to_reward.push(voters[i]);
+        }
+        // compute the reward to send out
+        uint256 reward =
+            candidate_standings[winner].deposited_soul / to_reward.length;
+        uint256 remainder =
+            candidate_standings[winner].deposited_soul % to_reward.length;
+
+        // reward with cookies :D
+        for (uint256 i = 0; i < to_reward.length; i++) {
+            address payable cookie_receiver = payable(to_reward[i]);
+            cookie_receiver.transfer(reward);
+            emit RewardVoter(cookie_receiver, reward);
+        }
+
+        // send the remainder to the winner
+        payable(winner).transfer(remainder);
     }
 
     /// @notice Either confirm or kick out the candidate. Refund the electors who voted for the losing outcome
@@ -293,7 +318,7 @@ contract Mayor {
         if (!tie) {
             emit NewMayor(winner);
             refund_losers(winner);
-            // send_cookies();
+            send_cookies(winner);
         }
 
         // else, all money to the escrow (both voters and candidates)
