@@ -124,6 +124,7 @@ contract Mayor {
             is_candidate[msg.sender],
             "You're not a candidate in this election!"
         );
+        require(msg.value > 0, "You must deposit something!");
         require(
             candidate_standings[msg.sender].deposited_soul == 0,
             "You've already deposited some soul!"
