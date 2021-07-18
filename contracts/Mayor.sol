@@ -170,8 +170,9 @@ contract Mayor {
         );
 
         bytes32 _casted_envelope = envelopes[msg.sender];
-        bytes32 _sent_envelope =
-            keccak256(abi.encode(_sigil, _symbol, msg.value));
+        bytes32 _sent_envelope = keccak256(
+            abi.encode(_sigil, _symbol, msg.value)
+        );
 
         require(
             _casted_envelope == _sent_envelope,
@@ -258,8 +259,8 @@ contract Mayor {
         uint256 total_escrow = 0;
         for (uint256 i = 0; i < candidates.length; i++) {
             uint256 voters_soul = candidate_standings[candidates[i]].vote_soul;
-            uint256 deposited_soul =
-                candidate_standings[candidates[i]].deposited_soul;
+            uint256 deposited_soul = candidate_standings[candidates[i]]
+            .deposited_soul;
 
             total_escrow += voters_soul;
             total_escrow += deposited_soul;
@@ -290,10 +291,10 @@ contract Mayor {
             if (souls[voters[i]].symbol == winner) to_reward.push(voters[i]);
         }
         // compute the reward to send out
-        uint256 reward =
-            candidate_standings[winner].deposited_soul / to_reward.length;
-        uint256 remainder =
-            candidate_standings[winner].deposited_soul % to_reward.length;
+        uint256 reward = candidate_standings[winner].deposited_soul /
+            to_reward.length;
+        uint256 remainder = candidate_standings[winner].deposited_soul %
+            to_reward.length;
 
         // reward with cookies :D
         for (uint256 i = 0; i < to_reward.length; i++) {
