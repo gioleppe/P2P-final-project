@@ -1,1 +1,3 @@
 node_modules
+build/contracts/Mayor.json
+build/contracts/Migrations.json
