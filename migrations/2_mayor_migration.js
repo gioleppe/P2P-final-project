@@ -10,6 +10,6 @@ module.exports = async function (deployer) {
     accounts[2],
     accounts[3]],
     accounts[0],
-    4)
+    3)
 
 };
