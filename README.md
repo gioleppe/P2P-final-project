@@ -4,6 +4,10 @@ First of all, you should restore npm packets, by running
 ```
 npm install
 ```
+You should also install Truffle globally by running
+```
+npm install -g truffle
+```
 after this you can proceed.
 
 In order to run the demo, do the following:
