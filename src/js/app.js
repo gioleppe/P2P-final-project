@@ -2,56 +2,27 @@ App = {
     contracts: {}, // Store contract abstractions
     web3Provider: null, // Web3 provider
     url: 'http://localhost:8545', // Url for web3
-    //account: '0x0', // current ethereum account
+    web3: null, // web3 instance
     accounts: null,
     init: function () { return App.initWeb3(); },
 
     initWeb3: function () {
-        // if (typeof web3 != 'undefined') { // Check whether exists a provider, e.g Metamask
-        //     App.web3Provider = window.ethereum; // standard since 2/11/18
-        //     web3 = new Web3(App.web3Provider);
-        //     try { // Permission popup
-        //         ethereum.enable().then(async () => { console.log("DApp connected"); });
-        //     }
-        //     catch (error) { console.log(error); }
-        // } else { // Otherwise, create a new local instance of Web3
-        App.web3Provider = new Web3.providers.HttpProvider(App.url); // <==
-        web3 = new Web3(App.web3Provider);
+        App.web3Provider = new Web3.providers.HttpProvider(App.url);
+        App.web3 = new Web3(App.web3Provider);
         // }
         return App.initContract();
     },
 
     initContract: async function () {
-        // Store ETH current account
-        web3.eth.getCoinbase(function (err, account) {
-            if (err == null) {
-                App.account = account;
-                // console.log(account);
-                $("#accountId").html("Your address: " + account);
-            }
-        });
+        // get the accounts from web3
+        App.accounts = await App.web3.eth.getAccounts();
+        // console.log(App.accounts);
         // Init contracts
         $.getJSON("Mayor.json").done(function (c) {
             App.contracts["Mayor"] = TruffleContract(c);
             App.contracts["Mayor"].setProvider(App.web3Provider);
-            return App.listenForEvents();
+            return App.render();
         });
-        // get the accounts from web3
-        App.accounts = await web3.eth.getAccounts();
-        console.log(App.accounts);
-    },
-
-    listenForEvents: function () {
-        App.contracts["Mayor"].deployed().then(async (instance) => {
-            // click is the Solidity event
-            instance.VoteForMe().on('data', function (event) {
-                $("#eventId").html("Event catched!");
-                console.log("Event catched");
-                console.log(event);
-                // If event has parameters: event.returnValues.*paramName*
-            });
-        });
-        return App.render();
     },
 
     render: function () {
@@ -60,8 +31,13 @@ App = {
             // Call the value function (value is a public attribute)
             const escrow = await instance.escrow();
 
+
             alert("The voting has begun! The escrow is at address:" + escrow);
-            // console.log(escrow);
+            for (let index = 0; index < 3; index++) {
+                var candidate = await instance.candidates(index);
+                $('#candidates').append('<tr><td>' + (index + 1) + '</td><td>' + candidate.slice(0, 8) + '...</td></tr>');
+            }
+
             $("#valueId").text(escrow);
             // enable candidate deposit
             $('#escrows').removeAttr('disabled');
@@ -115,17 +91,16 @@ App = {
             alert("The voting has ended! The winner is: " + winner_address);
             // disable mayor declaration button
             $('#sayonara').attr('disabled', 'disabled');
+            $('#winner').css('visibility', 'visible');
+            $('#winner').html("The winner is: " + winner_address);
+            $("#winner").get(0).scrollIntoView();
         });
     }
-
 }
 
+$(document).ready(function () {
+    window.addEventListener('unhandledrejection', function (event) {
+        alert(event.reason); // Error: Whoops! - the unhandled error object
+    });
+});
 
-
-// // Call init whenever the window loads
-// $(function () {
-//     $(window).on('load', function () {
-//         debugger;
-//         App.init();
-//     });
-// });

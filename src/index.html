@@ -25,28 +25,51 @@
             <p class="lead text-muted">Welcome to the Valadilene DApp demo! use the buttons below to interact with the
                 contract!
             </p>
+            <h3 id="winner" style="visibility: hidden;"></h3>
             <p>
-                <button href="#" class="btn btn-primary my-2" onclick="App.init()">Begin</button>
+                <button id="begin" class="btn btn-primary my-2" onclick="App.init()">Begin</button>
             </p>
         </div>
     </section>
 
     <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-4">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Escrow address:</h5>
                     <p class="card-text" id="valueId"></p>
-                    <button id="escrows" class="btn btn-primary" disabled="true">Deposit candidate escrows</button>
+                    <p class="card-text">Use the button below to let candidates deposit their soul</p>
+                    <button id="escrows" class="btn btn-primary" onclick="App.depositSoul()" disabled="true">Deposit
+                        candidate escrows</button>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-4">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Special title treatment</h5>
-                    <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-                    <a href="#" class="btn btn-primary">Go somewhere</a>
+                    <h5 class="card-title">Vote Casting</h5>
+                    <p class="card-text">Use the button below to let citizens cast their votes.</p>
+                    <table class="table" id="candidates">
+                        <thead>
+                            <tr>
+                                <th scope="col">#Candidate</th>
+                                <th scope="col">Address</th>
+                            </tr>
+                        </thead>
+                        </tbody>
+                    </table>
+                    <button id="voting" class="btn btn-primary" onclick="App.vote()" disabled="true">Let citizens
+                        cast their votes</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Declare the winner</h5>
+                    <p class="card-text">Use the button below to declare the winner</p>
+                    <button id="sayonara" class="btn btn-primary" onclick="App.declareWinner()" disabled="true">Declare
+                        the winner!</button>
                 </div>
             </div>
         </div>
