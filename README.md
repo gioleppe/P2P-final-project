@@ -4,9 +4,10 @@ First of all, you should restore npm packets, by running
 ```
 npm install
 ```
-You should also install Truffle globally by running
+You should also install Truffle and ganache-cli globally by running
 ```
 npm install -g truffle
+npm install -g ganache-cli
 ```
 after this you can proceed.
 
